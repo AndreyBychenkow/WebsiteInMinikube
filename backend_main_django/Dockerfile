@@ -13,5 +13,6 @@ COPY unit_config.json /docker-entrypoint.d/
 COPY src /webapp/src
 WORKDIR /webapp/src
 RUN SECRET_KEY=empty python manage.py collectstatic --noinput
+
 EXPOSE 80
 VOLUME ["/media"]

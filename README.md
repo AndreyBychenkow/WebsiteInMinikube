@@ -27,7 +27,7 @@ $ docker compose run --rm web ./manage.py migrate  # создаём/обновл
 $ docker compose run --rm web ./manage.py createsuperuser  # создаём в БД учётку суперпользователя
 ```
 
-Готово. Сайт будет доступен по адресу [http://127.0.0.1:8080](http://127.0.0.1:8080). Вход в админку находится по адресу [http://127.0.0.1:8000/admin/](http://127.0.0.1:8000/admin/).
+Готово. Сайт будет доступен по адресу [http://127.0.0.1:57509](http://127.0.0.1:57509). Вход в админку находится по адресу [http://127.0.0.1:57509/admin/](http://127.0.0.1:57509/admin/).
 
 ## Как вести разработку
 
@@ -92,8 +92,8 @@ metadata:
   name: django-secrets
 type: Opaque
 stringData:
-  SECRET_KEY: "your-super-secret-key-here"  # Замените на ваш секретный ключ
-  DATABASE_URL: "postgres://test_k8s:your-password@postgres-service:5432/test_k8s"  # Замените your-password на пароль из postgres-secrets.yaml
+  SECRET_KEY: "your-super-secret-key-here" 
+  DATABASE_URL: "postgres://test_k8s:your-password@postgres-service:5432/test_k8s" 
 ```
 
 #### postgres-secrets.yaml:
@@ -106,7 +106,7 @@ type: Opaque
 stringData:
   POSTGRES_DB: test_k8s
   POSTGRES_USER: test_k8s
-  POSTGRES_PASSWORD: your-password  # Замените на ваш пароль
+  POSTGRES_PASSWORD: your-password 
 ```
 
 ### 2. Применение секретов
@@ -121,14 +121,28 @@ kubectl apply -f k8s/secrets/
 kubectl apply -f k8s/
 ```
 
-### 4. Доступ к приложению
+### 4. Настройка Ingress и доступа к приложению
 
+1. Включите Ingress в Minikube:
 ```bash
-minikube service django-service
+minikube addons enable ingress
 ```
+
+2. Добавьте в файл hosts (Windows: C:\Windows\System32\drivers\etc\hosts, Linux/Mac: /etc/hosts) следующую строку:
+```
+127.0.0.1 star-burger.test
+```
+
+3. Запустите туннель Minikube (в отдельном терминале):
+```bash
+minikube tunnel
+```
+
+После этого сайт будет доступен по адресу http://star-burger.test
 
 ## Важно!
 
 - Директория `k8s/secrets` добавлена в `.gitignore` и не должна попадать в репозиторий
 - Храните файлы с секретами в безопасном месте
 - Используйте разные пароли для разных окружений (development, staging, production)
+- Для работы Ingress необходимо, чтобы туннель Minikube был постоянно запущен
