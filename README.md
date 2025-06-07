@@ -27,7 +27,7 @@ $ docker compose run --rm web ./manage.py migrate  # создаём/обновл
 $ docker compose run --rm web ./manage.py createsuperuser  # создаём в БД учётку суперпользователя
 ```
 
-Готово. Сайт будет доступен по адресу [http://127.0.0.1:57509](http://127.0.0.1:57509). Вход в админку находится по адресу [http://127.0.0.1:57509/admin/](http://127.0.0.1:57509/admin/).
+Готово. Сайт будет доступен по адресу [http://127.0.0.1:8000](http://127.0.0.1:8000). Вход в админку находится по адресу [http://127.0.0.1:8000/admin/](http://127.0.0.1:8000/admin/).
 
 ## Как вести разработку
 
@@ -146,3 +146,35 @@ minikube tunnel
 - Храните файлы с секретами в безопасном месте
 - Используйте разные пароли для разных окружений (development, staging, production)
 - Для работы Ingress необходимо, чтобы туннель Minikube был постоянно запущен
+
+## Очистка сессий (CronJob)
+
+Для регулярной очистки сессий в Kubernetes настроен `CronJob`.
+
+### Применение CronJob
+
+```bash
+kubectl apply -f django-clearsessions-cronjob.yaml
+```
+
+### Проверка статуса
+
+Вы можете проверить статус `CronJob` с помощью следующей команды:
+
+```bash
+kubectl get cronjob django-clearsessions
+```
+
+### Ручной запуск
+
+Для тестирования вы можете запустить `Job` из `CronJob` вручную:
+
+```bash
+kubectl create job --from=cronjob/django-clearsessions manual-clearsessions
+```
+
+После этого вы можете проверить статус запущенной `Job`:
+
+```bash
+kubectl get jobs
+```
