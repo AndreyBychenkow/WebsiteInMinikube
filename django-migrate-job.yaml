@@ -1,0 +1,19 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: django-migrate
+spec:
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+      - name: django-migrate
+        image: django_app:latest
+        imagePullPolicy: Never
+        command: ["python", "manage.py", "migrate", "--no-input"]
+        envFrom:
+        - configMapRef:
+            name: django-config
+        - secretRef:
+            name: django-secrets
+  backoffLimit: 4 
