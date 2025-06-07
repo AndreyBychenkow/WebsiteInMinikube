@@ -27,7 +27,7 @@ $ docker compose run --rm web ./manage.py migrate  # создаём/обновл
 $ docker compose run --rm web ./manage.py createsuperuser  # создаём в БД учётку суперпользователя
 ```
 
-Готово. Сайт будет доступен по адресу [http://127.0.0.1:8000](http://127.0.0.1:8000). Вход в админку находится по адресу [http://127.0.0.1:8000/admin/](http://127.0.0.1:8000/admin/).
+Готово. Сайт будет доступен по адресу [http://localhost:8080](http://localhost:8080). Вход в админку находится по адресу [http://localhost:8080](http://localhost:8080/admin).
 
 ## Как вести разработку
 
