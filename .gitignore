@@ -2,3 +2,7 @@
 __pycache__/
 *.py[cod]
 *$py.class
+venv/
+__pycache__/
+*.pyc
+k8s/secrets/

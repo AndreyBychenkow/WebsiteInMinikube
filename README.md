@@ -75,3 +75,60 @@ $ docker compose build web
 `ALLOWED_HOSTS` -- настройка Django со списком разрешённых адресов. Если запрос прилетит на другой адрес, то сайт ответит ошибкой 400. Можно перечислить несколько адресов через запятую, например `127.0.0.1,192.168.0.1,site.test`. [Документация Django](https://docs.djangoproject.com/en/3.2/ref/settings/#allowed-hosts).
 
 `DATABASE_URL` -- адрес для подключения к базе данных PostgreSQL. Другие СУБД сайт не поддерживает. [Формат записи](https://github.com/jacobian/dj-database-url#url-schema).
+
+# Django Website in Minikube
+
+## Установка и запуск
+
+### 1. Подготовка секретов
+
+Перед развертыванием приложения необходимо создать секреты. Создайте директорию `k8s/secrets` и добавьте в нее два файла:
+
+#### django-secrets.yaml:
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: django-secrets
+type: Opaque
+stringData:
+  SECRET_KEY: "your-super-secret-key-here"  # Замените на ваш секретный ключ
+  DATABASE_URL: "postgres://test_k8s:your-password@postgres-service:5432/test_k8s"  # Замените your-password на пароль из postgres-secrets.yaml
+```
+
+#### postgres-secrets.yaml:
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: postgres-secret
+type: Opaque
+stringData:
+  POSTGRES_DB: test_k8s
+  POSTGRES_USER: test_k8s
+  POSTGRES_PASSWORD: your-password  # Замените на ваш пароль
+```
+
+### 2. Применение секретов
+
+```bash
+kubectl apply -f k8s/secrets/
+```
+
+### 3. Развертывание приложения
+
+```bash
+kubectl apply -f k8s/
+```
+
+### 4. Доступ к приложению
+
+```bash
+minikube service django-service
+```
+
+## Важно!
+
+- Директория `k8s/secrets` добавлена в `.gitignore` и не должна попадать в репозиторий
+- Храните файлы с секретами в безопасном месте
+- Используйте разные пароли для разных окружений (development, staging, production)
