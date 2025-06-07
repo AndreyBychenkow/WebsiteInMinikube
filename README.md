@@ -76,105 +76,112 @@ $ docker compose build web
 
 `DATABASE_URL` -- адрес для подключения к базе данных PostgreSQL. Другие СУБД сайт не поддерживает. [Формат записи](https://github.com/jacobian/dj-database-url#url-schema).
 
-# Django Website in Minikube
+# Развертывание в Minikube
 
-## Установка и запуск
+## 1. Подготовка кластера
 
-### 1. Подготовка секретов
+Убедитесь, что у вас установлен `minikube` и `kubectl`.
 
-Перед развертыванием приложения необходимо создать секреты. Создайте директорию `k8s/secrets` и добавьте в нее два файла:
+Запустите Minikube:
+```shell
+minikube start
+```
 
-#### django-secrets.yaml:
+Включите addon `ingress`, который необходим для маршрутизации внешнего трафика к сервисам:
+```shell
+minikube addons enable ingress
+```
+
+## 2. Создание секретов
+
+Секреты содержат чувствительные данные (пароли, ключи) и не должны храниться в репозитории.
+
+Создайте файл `k8s/django-secrets.yaml` со следующим содержимым, заменив `<your-password>` на надежный пароль:
 ```yaml
 apiVersion: v1
 kind: Secret
 metadata:
   name: django-secrets
+  namespace: default
 type: Opaque
 stringData:
-  SECRET_KEY: "your-super-secret-key-here" 
-  DATABASE_URL: "postgres://test_k8s:your-password@postgres-service:5432/test_k8s" 
+  SECRET_KEY: "your-super-secret-key-that-no-one-knows"
+  DATABASE_URL: "postgres://test_k8s:<your-password>@postgres-service:5432/test_k8s"
 ```
 
-#### postgres-secrets.yaml:
+Создайте файл `k8s/postgres-secrets.yaml`, используя тот же пароль:
 ```yaml
 apiVersion: v1
 kind: Secret
 metadata:
   name: postgres-secret
+  namespace: default
 type: Opaque
 stringData:
   POSTGRES_DB: test_k8s
   POSTGRES_USER: test_k8s
-  POSTGRES_PASSWORD: your-password 
+  POSTGRES_PASSWORD: <your-password>
 ```
 
-### 2. Применение секретов
-
-```bash
-kubectl apply -f k8s/secrets/
+Примените секреты к кластеру. **Это нужно сделать до развертывания приложения.**
+```shell
+kubectl apply -f k8s/postgres-secrets.yaml
+kubectl apply -f k8s/django-secrets.yaml
 ```
 
-### 3. Развертывание приложения
+## 3. Развертывание приложения
 
-```bash
+Примените все остальные манифесты из директории `k8s/`:
+```shell
 kubectl apply -f k8s/
 ```
+Эта команда создаст:
+- `Deployment` и `Service` для PostgreSQL.
+- `ConfigMap`, `Deployment` и `Service` для Django.
+- `Ingress` для доступа к приложению.
 
-### 4. Настройка Ingress и доступа к приложению
-
-1. Включите Ingress в Minikube:
-```bash
-minikube addons enable ingress
+Запустите Job для применения миграций базы данных:
+```shell
+kubectl apply -f django-migrate-job.yaml
 ```
 
-2. Добавьте в файл hosts (Windows: C:\Windows\System32\drivers\etc\hosts, Linux/Mac: /etc/hosts) следующую строку:
+## 4. Настройка доступа к сайту
+
+Чтобы получить доступ к приложению по доменному имени `star-burger.test`, необходимо связать этот домен с IP-адресом, который предоставляет Minikube.
+
+В **отдельном терминале** запустите `minikube tunnel`. Этот процесс должен оставаться активным.
+```shell
+minikube tunnel
+```
+Туннель предоставит внешний IP-адрес для сервисов типа `LoadBalancer`, который используется нашим Ingress-контроллером.
+
+Теперь добавьте следующую запись в ваш файл `hosts`:
+- **Windows:** `C:\Windows\System32\drivers\etc\hosts`
+- **Linux/macOS:** `/etc/hosts`
+
 ```
 127.0.0.1 star-burger.test
 ```
 
-3. Запустите туннель Minikube (в отдельном терминале):
-```bash
-minikube tunnel
-```
+## 5. Проверка
 
-После этого сайт будет доступен по адресу http://star-burger.test
+После выполнения всех шагов сайт должен быть доступен в браузере по адресу http://star-burger.test. Админка находится по адресу http://star-burger.test/admin/.
 
-## Важно!
+## Управление CronJob для очистки сессий
 
-- Директория `k8s/secrets` добавлена в `.gitignore` и не должна попадать в репозиторий
-- Храните файлы с секретами в безопасном месте
-- Используйте разные пароли для разных окружений (development, staging, production)
-- Для работы Ingress необходимо, чтобы туннель Minikube был постоянно запущен
+Для регулярной очистки старых сессий в базе данных используется `CronJob`.
 
-## Очистка сессий (CronJob)
-
-Для регулярной очистки сессий в Kubernetes настроен `CronJob`.
-
-### Применение CronJob
-
-```bash
+Примените манифест:
+```shell
 kubectl apply -f django-clearsessions-cronjob.yaml
 ```
 
-### Проверка статуса
-
-Вы можете проверить статус `CronJob` с помощью следующей команды:
-
-```bash
+Проверить статус `CronJob` можно командой:
+```shell
 kubectl get cronjob django-clearsessions
 ```
 
-### Ручной запуск
-
-Для тестирования вы можете запустить `Job` из `CronJob` вручную:
-
-```bash
-kubectl create job --from=cronjob/django-clearsessions manual-clearsessions
-```
-
-После этого вы можете проверить статус запущенной `Job`:
-
-```bash
-kubectl get jobs
+Для ручного запуска задачи (например, для теста) выполните:
+```shell
+kubectl create job --from=cronjob/django-clearsessions manual-clearsessions-test
 ```
