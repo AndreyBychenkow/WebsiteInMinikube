@@ -94,39 +94,20 @@ minikube addons enable ingress
 
 ## 2. Создание секретов
 
-Секреты содержат чувствительные данные (пароли, ключи) и не должны храниться в репозитории.
+Секреты содержат чувствительные данные (пароли, ключи) и не должны храниться в репозитории. Для развертывания вам нужно создать свой собственный файл с секретами.
 
-Создайте файл `k8s/django-secrets.yaml` со следующим содержимым, заменив `<your-password>` на надежный пароль:
-```yaml
-apiVersion: v1
-kind: Secret
-metadata:
-  name: django-secrets
-  namespace: default
-type: Opaque
-stringData:
-  SECRET_KEY: "your-super-secret-key-that-no-one-knows"
-  DATABASE_URL: "postgres://test_k8s:<your-password>@postgres-service:5432/test_k8s"
+Скопируйте шаблон:
+```shell
+cp k8s/secrets.yaml.template k8s/secrets.yaml
 ```
 
-Создайте файл `k8s/postgres-secrets.yaml`, используя тот же пароль:
-```yaml
-apiVersion: v1
-kind: Secret
-metadata:
-  name: postgres-secret
-  namespace: default
-type: Opaque
-stringData:
-  POSTGRES_DB: test_k8s
-  POSTGRES_USER: test_k8s
-  POSTGRES_PASSWORD: <your-password>
-```
+Затем откройте `k8s/secrets.yaml` и замените плейсхолдеры `<your-django-secret-key>` и `<your-db-password>` на ваши реальные значения.
+
+**ВАЖНО:** Пароль в `DATABASE_URL` и `POSTGRES_PASSWORD` должен совпадать.
 
 Примените секреты к кластеру. **Это нужно сделать до развертывания приложения.**
 ```shell
-kubectl apply -f k8s/postgres-secrets.yaml
-kubectl apply -f k8s/django-secrets.yaml
+kubectl apply -f k8s/secrets.yaml
 ```
 
 ## 3. Развертывание приложения
