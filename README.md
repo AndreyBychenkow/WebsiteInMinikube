@@ -110,20 +110,29 @@ cp k8s/secrets.yaml.template k8s/secrets.yaml
 kubectl apply -f k8s/secrets.yaml
 ```
 
+## 2.1. Конфигурация Helm-чарта PostgreSQL
+
+Перед установкой базы данных через Helm скопируйте шаблон:
+```shell
+cp helm/postgres/values.yaml.template helm/postgres/values.yaml
+```
+Затем откройте `helm/postgres/values.yaml` и замените плейсхолдер `<your-db-password>` на ваш реальный пароль для базы данных (он должен совпадать с паролем в `k8s/secrets.yaml`).
+
 ## 3. Развертывание приложения
 
-Примените все остальные манифесты из директории `k8s/`:
+Примените все манифесты из директории `k8s/`, **кроме** базы данных (она теперь ставится Helm-чартом):
 ```shell
 kubectl apply -f k8s/
 ```
-Эта команда создаст:
-- `Deployment` и `Service` для PostgreSQL.
-- `ConfigMap`, `Deployment` и `Service` для Django.
-- `Ingress` для доступа к приложению.
+
+Установите PostgreSQL через Helm из локального чарта:
+```shell
+helm install db helm/postgres
+```
 
 Запустите Job для применения миграций базы данных:
 ```shell
-kubectl apply -f django-migrate-job.yaml
+kubectl apply -f k8s/django-migrate-job.yaml
 ```
 
 ## 4. Настройка доступа к сайту
