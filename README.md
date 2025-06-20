@@ -110,24 +110,78 @@ cp k8s/secrets.yaml.template k8s/secrets.yaml
 kubectl apply -f k8s/secrets.yaml
 ```
 
-## 2.1. Конфигурация Helm-чарта PostgreSQL
+## 2.1. Установка PostgreSQL через официальный Helm chart
 
-Перед установкой базы данных через Helm скопируйте шаблон:
-```shell
-cp helm/postgres/values.yaml.template helm/postgres/values.yaml
+PostgreSQL устанавливается с помощью официального Helm chart от Bitnami. Это рекомендуемый способ установки, так как он обеспечивает:
+- Стабильность и поддержку от официальных разработчиков
+- Автоматическое обновление и управление конфигурацией
+- Встроенные механизмы безопасности и лучшие практики
+
+### Шаг 1: Добавление официального репозитория Bitnami
+
+```sh
+# Добавляем официальный репозиторий Bitnami
+helm repo add bitnami https://charts.bitnami.com/bitnami
+
+# Обновляем информацию о чартах
+helm repo update
 ```
-Затем откройте `helm/postgres/values.yaml` и замените плейсхолдер `<your-db-password>` на ваш реальный пароль для базы данных (он должен совпадать с паролем в `k8s/secrets.yaml`).
+
+### Шаг 2: Установка PostgreSQL
+
+```sh
+# Устанавливаем PostgreSQL с настройкой пользователя, пароля и базы данных
+helm install my-postgres bitnami/postgresql \
+  --set auth.username=test_k8s \
+  --set auth.password=OwOtBep9Frut \
+  --set auth.database=test_k8s
+```
+
+Параметры установки:
+- `auth.username`: имя пользователя базы данных
+- `auth.password`: пароль пользователя
+- `auth.database`: название базы данных
+- Имя релиза: `my-postgres` (это префикс для всех создаваемых ресурсов)
+
+### Шаг 3: Проверка установки
+
+```sh
+# Проверяем, что под PostgreSQL запущен
+kubectl get pods
+
+# Проверяем созданный сервис
+kubectl get svc
+
+# Проверяем логи пода (замените my-postgres-postgresql-0 на актуальное имя пода)
+kubectl logs my-postgres-postgresql-0
+```
+
+### Шаг 4: Получение информации для подключения
+
+После установки PostgreSQL будет доступен внутри кластера по следующему адресу:
+```
+my-postgres-postgresql.default.svc.cluster.local:5432
+```
+
+Эти данные уже настроены в секретах Django (`k8s/secrets.yaml`):
+- Имя хоста: `my-postgres-postgresql.default.svc.cluster.local`
+- Порт: `5432`
+- База данных: `test_k8s`
+- Пользователь: `test_k8s`
+- Пароль: совпадает с значением в `auth.password`
+
+### Важные примечания:
+
+1. Убедитесь, что значения `auth.username`, `auth.password` и `auth.database` совпадают с теми, что указаны в `k8s/secrets.yaml`
+2. Helm chart создаст PersistentVolume для хранения данных автоматически
+3. По умолчанию создается одна реплика PostgreSQL. Для production окружения рекомендуется настроить репликацию
+4. Для удаления PostgreSQL используйте команду: `helm uninstall my-postgres`
 
 ## 3. Развертывание приложения
 
-Примените все манифесты из директории `k8s/`, **кроме** базы данных (она теперь ставится Helm-чартом):
+Примените все манифесты из директории `k8s/`:
 ```shell
 kubectl apply -f k8s/
-```
-
-Установите PostgreSQL через Helm из локального чарта:
-```shell
-helm install db helm/postgres
 ```
 
 Запустите Job для применения миграций базы данных:
