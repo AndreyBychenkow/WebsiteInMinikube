@@ -229,3 +229,32 @@ kubectl get cronjob django-clearsessions
 ```shell
 kubectl create job --from=cronjob/django-clearsessions manual-clearsessions-test
 ```
+
+## Как задеплоить код: деплой тестового nginx через Service
+
+1. **Создай pod с nginx**  
+   Применить манифест:
+   ```sh
+   kubectl apply -f k8s/simple-pod.yaml -n default
+   ```
+
+2. **Создай Service для nginx**  
+   Применить манифест:
+   ```sh
+   kubectl apply -f k8s/nginx-service.yaml -n default
+   ```
+
+3. **Проверь, что pod и service созданы:**
+   ```sh
+   kubectl get pods -n default
+   kubectl get svc -n default
+   ```
+
+4. **Проверь доступность nginx через NodePort:**
+   - Узнай порт:
+     ```sh
+     kubectl get svc nginx-service -n default
+     ```
+   - Открой в браузере:  
+     `http://localhost:<nodeport>`  
+     (например, если NodePort 30080 — http://localhost:30080)
