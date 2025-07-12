@@ -76,6 +76,8 @@ $ docker compose build web
 
 `DATABASE_URL` -- адрес для подключения к базе данных PostgreSQL. Другие СУБД сайт не поддерживает. [Формат записи](https://github.com/jacobian/dj-database-url#url-schema).
 
+
+
 # Развертывание в Minikube
 
 ## 1. Подготовка кластера
@@ -289,3 +291,48 @@ kubectl create job --from=cronjob/django-clearsessions manual-clearsessions-test
    ```
 
 6. **Если видите приглашение psql (`<your-namespace>,=>`) — всё работает!**
+
+## Публикация docker-образа в Docker Hub
+
+1. Перейдите в директорию с Dockerfile:
+   ```sh
+   cd backend_main_django
+   ```
+
+2. Соберите образ:
+   ```sh
+   docker build -t <your-namespace>/<your-image-name>:latest .
+   ```
+
+3. Получите git-хэш текущего коммита (выполните в корне репозитория):
+   ```sh
+   git rev-parse --short HEAD
+   ```
+   Скопируйте результат (например, `377ba13`).
+
+4. Проставьте тег с git-хэшем:
+   ```sh
+   docker tag <your-namespace>/<your-image-name>:latest <your-namespace>/<your-image-name>:<your-git-sha>
+   ```
+   Пример:
+   ```sh
+   docker tag decebell032/django-site:latest decebell032/django-site:377ba13
+   ```
+
+5. Залогиньтесь в Docker Hub (если не залогинены):
+   ```sh
+   docker login
+   ```
+
+6. Запушьте оба тега:
+   ```sh
+   docker push <your-namespace>/<your-image-name>:latest
+   docker push <your-namespace>/<your-image-name>:<your-git-sha>
+   ```
+   Пример:
+   ```sh
+   docker push decebell032/django-site:latest
+   docker push decebell032/django-site:377ba13
+   ```
+
+7. Проверьте, что оба тега появились на [Docker Hub](https://hub.docker.com/repositories/<your-namespace>)
