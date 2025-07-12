@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pg-ssl-test
+  namespace: edu-andrey-bychenkov
+spec:
+  containers:
+    - name: postgres
+      image: postgres:15
+      command: ["sleep", "infinity"]
+      volumeMounts:
+        - name: pg-root-cert
+          mountPath: /root/.postgresql/root.crt
+          subPath: root.crt
+  volumes:
+    - name: pg-root-cert
+      secret:
+        secretName: pg-root-cert

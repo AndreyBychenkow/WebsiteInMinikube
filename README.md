@@ -258,3 +258,34 @@ kubectl create job --from=cronjob/django-clearsessions manual-clearsessions-test
    - Открой в браузере:  
      `http://localhost:<nodeport>`  
      (например, если NodePort 30080 — http://localhost:30080)
+
+## Как подготовить dev-окружение для подключения к Managed PostgreSQL через SSL
+
+1. **Создайте Secret с SSL-сертификатом:**
+   ```sh
+   kubectl apply -f k8s/<your-ssl-cert-secret>.yaml -n <your-namespace>
+   ```
+   (или создайте вручную через Lens/GUI)
+
+2. **Создайте Secret с параметрами подключения к БД:**
+   ```sh
+   kubectl apply -f k8s/<your-db-secret>.yaml -n <your-namespace>
+   ```
+
+3. **Запустите тестовый pod для проверки монтирования сертификата:**
+   ```sh
+   kubectl apply -f k8s/<your-test-pod-manifest>.yaml -n <your-namespace>
+   ```
+
+4. **Проверьте наличие сертификата в pod-е:**
+   ```sh
+   kubectl exec -it <your-test-pod-name> -n <your-namespace> -- ls -l /root/.postgresql/
+   ```
+
+5. **Подключитесь к базе через psql:**
+   ```sh
+   kubectl exec -it <your-test-pod-name> -n <your-namespace> -- bash
+   psql "host=<db-host> port=<db-port> dbname=<db-name> user=<db-user> password=<db-password> sslmode=require"
+   ```
+
+6. **Если видите приглашение psql (`<your-namespace>,=>`) — всё работает!**
