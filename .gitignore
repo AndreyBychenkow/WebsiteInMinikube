@@ -1,14 +1,19 @@
-# Byte-compiled / optimized / DLL files
-__pycache__/
-*.py[cod]
-*$py.class
+# Python
 venv/
 __pycache__/
 *.pyc
-k8s/secrets/
-k8s/secrets.yaml
-helm/postgres/values.yaml
 
-# Env files
+# Secrets
+k8s/kubeconfig-sirius.yaml
+pg-root-cert.yaml
+postgres-secret.yaml
+root.crt
+secrets.yaml
+yc-sirius/edu-andrey-bychenkov/django-secrets.yaml
+k8s/django-secrets.yaml
 .env
-.env.*
+
+# Editor specific
+.cursorrules
+.idea/
+.vscode/

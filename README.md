@@ -135,7 +135,7 @@ helm repo update
 # Устанавливаем PostgreSQL с настройкой пользователя, пароля и базы данных
 helm install my-postgres bitnami/postgresql \
   --set auth.username=test_k8s \
-  --set auth.password=OwOtBep9Frut \
+  --set auth.password=<your-postgres-password> \
   --set auth.database=test_k8s
 ```
 
@@ -336,3 +336,96 @@ kubectl create job --from=cronjob/django-clearsessions manual-clearsessions-test
    ```
 
 7. Проверьте, что оба тега появились на [Docker Hub](https://hub.docker.com/repositories/<your-namespace>)
+
+## Размещение проекта на внешнем кластере
+
+В кластере выделено персональное пространство имен `edu-andrey-bychenkov`. Его используем при создании объектов через манифесты.
+
+Также включен балансировщик нагрузки приложений (Application Load Balancer) с HTTP-роутером, перенаправляющим запросы с доменного имени на NodePort.
+
+Подробное описание выделенных ресурсов кластера можно посмотреть в Yandex Cloud Sirius.
+
+Схему внешнего доступа к приложениям можно посмотреть на примере сервера `nginx`.
+Используя файлы манифестов из папки `k8s` создаем pod и service:
+
+```
+$ kubectl --kubeconfig=k8s/kubeconfig-sirius.yaml apply -f k8s/simple-pod.yaml
+$ kubectl --kubeconfig=k8s/kubeconfig-sirius.yaml apply -f k8s/nginx-service.yaml
+```
+
+Для работы проекта понадобится база данных.
+Публично доступные базы PostgreSQL требуют защищенного соединения.
+Добавить сертификат для подключения к БД можно через манифест `secret`.
+Добавьте содержимое файла сертификата в формате base64 encoded в файл манифеста `pg-root-cert.yaml` и запустите:
+
+```
+$ kubectl --kubeconfig=k8s/kubeconfig-sirius.yaml apply -f pg-root-cert.yaml
+```
+
+Чтобы проверить подключение к внешнему серверу PostgreSQL, запустите pod с Ubuntu с помощью манифеста `k8s/pg-ssl-test-pod.yaml`.
+
+Для размещения проекта применяем файлы манифестов из папки `k8s`:
+Подготовьте переменные окружения через манифест секретов:
+
+```
+$ kubectl --kubeconfig=k8s/kubeconfig-sirius.yaml apply -f k8s/django-secrets.yaml
+```
+
+Разворачиваем deployment:
+
+```
+$ kubectl --kubeconfig=k8s/kubeconfig-sirius.yaml apply -f k8s/django-deployment.yaml
+$ kubectl --kubeconfig=k8s/kubeconfig-sirius.yaml apply -f k8s/django-service.yaml
+$ kubectl --kubeconfig=k8s/kubeconfig-sirius.yaml apply -f k8s/django-ingress.yaml
+```
+
+Для первоначального заполнения и при обновлении базы данных, выполняем миграцию:
+
+```
+$ kubectl --kubeconfig=k8s/kubeconfig-sirius.yaml apply -f k8s/django-migrate-job.yaml
+```
+
+Для создания суперпользователя подключаемся к любому из запущенных подов:
+
+```
+$ kubectl --kubeconfig=k8s/kubeconfig-sirius.yaml exec pod/django-app-7b9b9f8d5-2xjqz -it -- bash
+root@pod$ python manage.py createsuperuser
+```
+
+Добавляем регулярную задачу очистки сессий раз в месяц:
+
+```
+$ kubectl --kubeconfig=k8s/kubeconfig-sirius.yaml apply -f django-clearsessions-cronjob.yaml
+```
+
+### Доступ к приложению
+
+После выполнения всех шагов сайт доступен по адресу:
+- Основной сайт: `https://edu-andrey-bychenkov.sirius-k8s.dvmn.org`
+- Административная панель: `https://edu-andrey-bychenkov.sirius-k8s.dvmn.org/admin/`
+
+### Проверка статуса развертывания
+
+Для проверки статуса развертывания используйте следующие команды:
+
+```
+$ kubectl --kubeconfig=k8s/kubeconfig-sirius.yaml get pods -n edu-andrey-bychenkov
+$ kubectl --kubeconfig=k8s/kubeconfig-sirius.yaml get svc -n edu-andrey-bychenkov
+$ kubectl --kubeconfig=k8s/kubeconfig-sirius.yaml get ingress -n edu-andrey-bychenkov
+```
+
+### Обновление приложения
+
+1. Соберите и опубликуйте новый образ Docker:
+   ```
+   cd backend_main_django
+   docker build -t decebell032/django-site:latest .
+   docker tag decebell032/django-site:latest decebell032/django-site:<git-хеш>
+   docker push decebell032/django-site:latest
+   docker push decebell032/django-site:<git-хеш>
+   ```
+
+2. Обновите образ в файле django-deployment.yaml и примените изменения:
+   ```
+   kubectl --kubeconfig=k8s/kubeconfig-sirius.yaml apply -f k8s/django-deployment.yaml
+   ```

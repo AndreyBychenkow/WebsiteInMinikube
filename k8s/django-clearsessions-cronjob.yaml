@@ -2,6 +2,7 @@ apiVersion: batch/v1
 kind: CronJob
 metadata:
   name: django-clearsessions
+  namespace: edu-andrey-bychenkov
 spec:
   schedule: "0 0 * * *"
   startingDeadlineSeconds: 20
@@ -13,8 +14,8 @@ spec:
           restartPolicy: OnFailure
           containers:
           - name: django-clearsessions
-            image: django_app:latest
-            imagePullPolicy: Never
+            image: decebell032/django-site:377ba13
+            imagePullPolicy: IfNotPresent
             command: ["python", "manage.py", "clearsessions"]
             envFrom:
             - secretRef:
