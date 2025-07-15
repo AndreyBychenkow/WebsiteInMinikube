@@ -353,5 +353,4 @@ kubectl --kubeconfig=k8s/kubeconfig-sirius.yaml exec -it $(kubectl get pods -l a
 
 ### Доступ к приложению
 
-После выполнения всех шагов сайт доступен по адресу:
-- Основной сайт: `https://edu-andrey-bychenkov.sirius-k8s.dvmn.org/admin`
+После выполнения всех шагов сайт доступен по [адресу](https://edu-andrey-bychenkov.sirius-k8s.dvmn.org/admin)
